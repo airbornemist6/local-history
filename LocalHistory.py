@@ -20,19 +20,22 @@ else:
 NO_SELECTION = -1
 settings = None
 
+
+def status_msg(msg):
+    sublime.status_message('Local History: ' + msg)
+
+
+def get_history_root():
+    path_default_not_portable = os.path.join(os.path.abspath(os.path.expanduser('~')), '.sublime', 'Local History')
+    path_not_portable = settings.get('history_path', path_default_not_portable)
+    return os.path.join(os.path.dirname(sublime.packages_path()), '.sublime', 'Local History') if settings.get('portable', True) else path_not_portable
+
+
 if sublime.version().startswith('2'):
-    plugin_loaded()
-
-def plugin_loaded():
-    global settings
-
     settings = sublime.load_settings('LocalHistory.sublime-settings')
     settings.add_on_change('reload', sublime.load_settings('LocalHistory.sublime-settings'))
 
     status_msg('Target directory: "' + get_history_root() + '"')
-
-def status_msg(msg):
-    sublime.status_message('Local History: ' + msg)
 
 def readable_file_size(size):
     suffixes = ['bytes', 'KB', 'MB', 'GB', 'TB', 'EB', 'ZB']
@@ -42,10 +45,6 @@ def readable_file_size(size):
         order = int(log2(size) / 10) if size else 0
     return '{:.4g} {}'.format(size / (1 << (order * 10)), suffixes[order])
 
-def get_history_root():
-    path_default_not_portable = os.path.join(os.path.abspath(os.path.expanduser('~')), '.sublime', 'Local History')
-    path_not_portable = settings.get('history_path', path_default_not_portable)
-    return os.path.join(os.path.dirname(sublime.packages_path()), '.sublime', 'Local History') if settings.get('portable', True) else path_not_portable
 
 def get_history_subdir(file_path):
     history_root = get_history_root()
