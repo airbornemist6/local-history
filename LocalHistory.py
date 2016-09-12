@@ -12,6 +12,12 @@ import sublime
 import sublime_plugin
 
 PY2 = sys.version_info < (3, 0)
+
+if PY2:
+    from math import log
+else:
+    from math import log2
+
 NO_SELECTION = -1
 settings = None
 
