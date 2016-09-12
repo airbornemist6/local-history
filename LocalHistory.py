@@ -5,10 +5,11 @@ import datetime
 import difflib
 import filecmp
 import shutil
-from threading import Thread
 import subprocess
 import sublime
 import sublime_plugin
+from os import path
+from threading import Thread
 
 PY2 = sys.version_info < (3, 0)
 
@@ -26,9 +27,9 @@ def status_msg(msg):
 
 
 def get_history_root():
-    path_default_not_portable = os.path.join(os.path.abspath(os.path.expanduser('~')), '.sublime', 'Local History')
+    path_default_not_portable = path.join(path.abspath(path.expanduser('~')), '.sublime', 'Local History')
     path_not_portable = settings.get('history_path', path_default_not_portable)
-    return os.path.join(os.path.dirname(sublime.packages_path()), '.sublime', 'Local History') if settings.get('portable', True) else path_not_portable
+    return path.join(path.dirname(sublime.packages_path()), '.sublime', 'Local History') if settings.get('portable', True) else path_not_portable
 
 
 if sublime.version().startswith('2'):
@@ -49,7 +50,7 @@ def readable_file_size(size):
 def get_history_subdir(file_path):
     history_root = get_history_root()
 
-    file_dir = os.path.dirname(file_path)
+    file_dir = path.dirname(file_path)
     if platform.system() == 'Windows':
         if file_dir.find(os.sep) == 0:
             file_dir = file_dir[2:]
@@ -58,14 +59,14 @@ def get_history_subdir(file_path):
     else:
         file_dir = file_dir[1:]
 
-    return os.path.join(history_root, file_dir)
+    return path.join(history_root, file_dir)
 
 def get_history_files(file_name, history_dir):
-    file_root, file_extension = os.path.splitext(file_name)
-    history_files = [os.path.join(dirpath, f)
+    file_root, file_extension = path.splitext(file_name)
+    history_files = [path.join(dirpath, f)
                         for dirpath, dirnames, files in os.walk(history_dir)
                         for f in files if f.startswith(file_root) and f.endswith(file_extension)]
-    history_files.sort(key=lambda f: os.path.getmtime(os.path.join(history_dir, f)), reverse=True)
+    history_files.sort(key=lambda f: path.getmtime(path.join(history_dir, f)), reverse=True)
 
     return history_files
 
@@ -110,7 +111,7 @@ class HistorySave(sublime_plugin.EventListener):
             status_msg('File not saved, path does not exist.')
             return
 
-        if not os.path.isfile(file_path):
+        if not path.isfile(file_path):
             status_msg('File not saved, might be part of a package.')
             return
 
@@ -119,24 +120,24 @@ class HistorySave(sublime_plugin.EventListener):
 
         if PY2:
             file_path = file_path.encode('utf-8')
-        if os.path.getsize(file_path) > size_limit:
+        if path.getsize(file_path) > size_limit:
             status_msg('File not saved, exceeded %s limit.' % readable_file_size(size_limit))
             return
 
-        file_name = os.path.basename(file_path)
+        file_name = path.basename(file_path)
         history_dir = get_history_subdir(file_path)
-        if not os.path.exists(history_dir):
+        if not path.exists(history_dir):
             os.makedirs(history_dir)
 
         history_files = get_history_files(file_name, history_dir)
 
         if history_files:
-            if filecmp.cmp(file_path, os.path.join(history_dir, history_files[0])):
+            if filecmp.cmp(file_path, path.join(history_dir, history_files[0])):
                 status_msg('File not saved, no changes for "' + file_name + '".')
                 return
 
-        file_root, file_extension = os.path.splitext(file_name)
-        shutil.copyfile(file_path, os.path.join(history_dir, '{0}-{1}{2}'.format(file_root, datetime.datetime.now().strftime(settings.get('format_timestamp', '%Y%m%d%H%M%S')), file_extension)))
+        file_root, file_extension = path.splitext(file_name)
+        shutil.copyfile(file_path, path.join(history_dir, '{0}-{1}{2}'.format(file_root, datetime.datetime.now().strftime(settings.get('format_timestamp', '%Y%m%d%H%M%S')), file_extension)))
 
         status_msg('File saved, updated Local History for "' + file_name + '".')
 
@@ -145,8 +146,8 @@ class HistorySave(sublime_plugin.EventListener):
 
         max_valid_archive_date = datetime.date.today() - datetime.timedelta(days=history_retention)
         for file in history_files:
-            file = os.path.join(history_dir, file)
-            if datetime.date.fromtimestamp(os.path.getmtime(file)) < max_valid_archive_date:
+            file = path.join(history_dir, file)
+            if datetime.date.fromtimestamp(path.getmtime(file)) < max_valid_archive_date:
                 os.remove(file)
 
 class HistorySaveNow(sublime_plugin.TextCommand):
@@ -172,7 +173,7 @@ class HistoryBrowse(sublime_plugin.TextCommand):
 class HistoryOpen(sublime_plugin.TextCommand):
 
     def run(self, edit):
-        file_name = os.path.basename(self.view.file_name())
+        file_name = path.basename(self.view.file_name())
         history_dir = get_history_subdir(self.view.file_name())
 
         history_files = get_history_files(file_name, history_dir)
@@ -184,14 +185,14 @@ class HistoryOpen(sublime_plugin.TextCommand):
             if index is NO_SELECTION:
                 return
 
-            self.view.window().open_file(os.path.join(history_dir, history_files[index]))
+            self.view.window().open_file(path.join(history_dir, history_files[index]))
 
         self.view.window().show_quick_panel(history_files, on_done)
 
 class HistoryCompare(sublime_plugin.TextCommand):
 
     def run(self, edit):
-        file_name = os.path.basename(self.view.file_name())
+        file_name = path.basename(self.view.file_name())
         history_dir = get_history_subdir(self.view.file_name())
 
         history_files = get_history_files(file_name, history_dir)
@@ -208,7 +209,7 @@ class HistoryCompare(sublime_plugin.TextCommand):
             if self.view.is_dirty():
                 self.view.run_command('save')
 
-            from_file = os.path.join(history_dir, history_files[index])
+            from_file = path.join(history_dir, history_files[index])
             to_file = self.view.file_name()
             self.view.run_command('show_diff', {'from_file': from_file, 'to_file': to_file})
 
@@ -217,7 +218,7 @@ class HistoryCompare(sublime_plugin.TextCommand):
 class HistoryReplace(sublime_plugin.TextCommand):
 
     def run(self, edit):
-        file_name = os.path.basename(self.view.file_name())
+        file_name = path.basename(self.view.file_name())
         history_dir = get_history_subdir(self.view.file_name())
 
         history_files = get_history_files(file_name, history_dir)
@@ -231,7 +232,7 @@ class HistoryReplace(sublime_plugin.TextCommand):
             if index is NO_SELECTION:
                 return
 
-            file = os.path.join(history_dir, history_files[index])
+            file = path.join(history_dir, history_files[index])
             with open(file) as f:
                 data = f.read()
                 if PY2:
@@ -244,7 +245,7 @@ class HistoryReplace(sublime_plugin.TextCommand):
 class HistoryIncrementalDiff(sublime_plugin.TextCommand):
 
     def run(self, edit):
-        file_name = os.path.basename(self.view.file_name())
+        file_name = path.basename(self.view.file_name())
         history_dir = get_history_subdir(self.view.file_name())
 
         history_files = get_history_files(file_name, history_dir)
@@ -260,8 +261,8 @@ class HistoryIncrementalDiff(sublime_plugin.TextCommand):
                 status_msg('Incremental diff not found for "' + file_name + '".')
                 return
 
-            from_file = os.path.join(history_dir, history_files[index + 1])
-            to_file = os.path.join(history_dir, history_files[index])
+            from_file = path.join(history_dir, history_files[index + 1])
+            to_file = path.join(history_dir, history_files[index])
             self.view.run_command('show_diff', {'from_file': from_file, 'to_file': to_file})
 
         self.view.window().show_quick_panel(history_files, on_done)
