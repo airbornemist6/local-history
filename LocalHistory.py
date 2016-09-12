@@ -38,6 +38,7 @@ if sublime.version().startswith('2'):
 
     status_msg('Target directory: "' + get_history_root() + '"')
 
+
 def readable_file_size(size):
     suffixes = ['bytes', 'KB', 'MB', 'GB', 'TB', 'EB', 'ZB']
     if PY2:
@@ -61,6 +62,7 @@ def get_history_subdir(file_path):
 
     return path.join(history_root, file_dir)
 
+
 def get_history_files(file_name, history_dir):
     file_root, file_extension = path.splitext(file_name)
     history_files = [path.join(dirpath, f)
@@ -69,6 +71,7 @@ def get_history_files(file_name, history_dir):
     history_files.sort(key=lambda f: path.getmtime(path.join(history_dir, f)), reverse=True)
 
     return history_files
+
 
 class HistorySave(sublime_plugin.EventListener):
 
@@ -107,7 +110,7 @@ class HistorySave(sublime_plugin.EventListener):
             t.start()
 
     def process_history(self, file_path):
-        if file_path == None:
+        if file_path is None:
             status_msg('File not saved, path does not exist.')
             return
 
@@ -150,11 +153,13 @@ class HistorySave(sublime_plugin.EventListener):
             if datetime.date.fromtimestamp(path.getmtime(file)) < max_valid_archive_date:
                 os.remove(file)
 
+
 class HistorySaveNow(sublime_plugin.TextCommand):
 
     def run(self, edit):
         t = Thread(target=HistorySave().process_history, args=(self.view.file_name(),))
         t.start()
+
 
 class HistoryBrowse(sublime_plugin.TextCommand):
 
@@ -169,6 +174,7 @@ class HistoryBrowse(sublime_plugin.TextCommand):
             subprocess.call('xdg-open %s' % target_dir, shell=True)
         elif system == 'Windows':
             subprocess.call('explorer %s' % target_dir, shell=True)
+
 
 class HistoryOpen(sublime_plugin.TextCommand):
 
@@ -188,6 +194,7 @@ class HistoryOpen(sublime_plugin.TextCommand):
             self.view.window().open_file(path.join(history_dir, history_files[index]))
 
         self.view.window().show_quick_panel(history_files, on_done)
+
 
 class HistoryCompare(sublime_plugin.TextCommand):
 
@@ -214,6 +221,7 @@ class HistoryCompare(sublime_plugin.TextCommand):
             self.view.run_command('show_diff', {'from_file': from_file, 'to_file': to_file})
 
         self.view.window().show_quick_panel(history_files, on_done)
+
 
 class HistoryReplace(sublime_plugin.TextCommand):
 
@@ -242,6 +250,7 @@ class HistoryReplace(sublime_plugin.TextCommand):
 
         self.view.window().show_quick_panel(history_files, on_done)
 
+
 class HistoryIncrementalDiff(sublime_plugin.TextCommand):
 
     def run(self, edit):
@@ -266,6 +275,7 @@ class HistoryIncrementalDiff(sublime_plugin.TextCommand):
             self.view.run_command('show_diff', {'from_file': from_file, 'to_file': to_file})
 
         self.view.window().show_quick_panel(history_files, on_done)
+
 
 class ShowDiff(sublime_plugin.TextCommand):
 
@@ -296,6 +306,7 @@ class ShowDiff(sublime_plugin.TextCommand):
         panel.set_scratch(True)
         panel.set_syntax_file('Packages/Diff/Diff.sublime-syntax')
         panel.insert(edit, 0, diff)
+
 
 class HistoryDeleteAll(sublime_plugin.TextCommand):
 
